@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DndContext, useDraggable } from "@dnd-kit/core";
 import "./CertificationBoard.css";
 
@@ -98,6 +98,8 @@ const certifications = [
 
 const CertificationBoard = () => {
   const [activeCard, setActiveCard] = useState(null);
+  const [likeCount, setLikeCount] = useState(0);
+  const [visitCount, setVisitCount] = useState(0);
   // Track position for each card with initial stacked positions
   const [positions, setPositions] = useState(() => {
     const pos = {};
@@ -109,6 +111,38 @@ const CertificationBoard = () => {
     }
     return pos;
   });
+
+  // Simple public counter API (countapi.xyz)
+  const namespace = "fun-certifications-board";
+  const likesKey = `${namespace}-likes`;
+  const visitsKey = `${namespace}-visits`;
+
+  useEffect(() => {
+    // Initialize like count (no increment)
+    fetch(`https://api.countapi.xyz/get/${namespace}/${likesKey}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.value === "number") setLikeCount(d.value);
+      })
+      .catch(() => {});
+
+    // Increment and get visit count
+    fetch(`https://api.countapi.xyz/hit/${namespace}/${visitsKey}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.value === "number") setVisitCount(d.value);
+      })
+      .catch(() => {});
+  }, [likesKey, visitsKey, namespace]);
+
+  const handleHeartClick = () => {
+    fetch(`https://api.countapi.xyz/hit/${namespace}/${likesKey}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.value === "number") setLikeCount(d.value);
+      })
+      .catch(() => {});
+  };
 
   return (
     <DndContext
@@ -137,6 +171,21 @@ const CertificationBoard = () => {
               position={positions[cert.id]}
             />
           ))}
+        </div>
+
+        {/* Floating Heart Button */}
+        <button
+          className="heart-button"
+          onClick={handleHeartClick}
+          aria-label="Send a heart"
+        >
+          <span className="heart-icon">❤</span>
+          <span className="heart-count">{likeCount}</span>
+        </button>
+
+        {/* Visitor Badge */}
+        <div className="visitor-badge" aria-live="polite">
+          Visitors: {visitCount}
         </div>
       </div>
     </DndContext>
