@@ -1,55 +1,43 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+const counters = { visitors: 0, hearts: 0 };
 
-const COUNTER_FILE = path.join(process.cwd(), 'counters.json');
+export default function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Content-Type', 'application/json');
 
-// Initialize counters file if it doesn't exist
-async function initCounters() {
-  try {
-    await fs.access(COUNTER_FILE);
-  } catch {
-    await fs.writeFile(COUNTER_FILE, JSON.stringify({ visitors: 0, hearts: 0 }));
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
-}
-
-// Read counters from file
-async function readCounters() {
-  try {
-    const data = await fs.readFile(COUNTER_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return { visitors: 0, hearts: 0 };
-  }
-}
-
-// Write counters to file
-async function writeCounters(counters) {
-  await fs.writeFile(COUNTER_FILE, JSON.stringify(counters, null, 2));
-}
-
-export default async function handler(req, res) {
-  await initCounters();
 
   if (req.method === 'GET') {
-    // Get current counters and increment visitor count
-    const counters = await readCounters();
+    // Increment visitor count
     counters.visitors += 1;
-    await writeCounters(counters);
 
     res.status(200).json({
       visitors: counters.visitors,
       hearts: counters.hearts
     });
-  } else if (req.method === 'POST' && req.body.action === 'heart') {
-    // Increment heart count
-    const counters = await readCounters();
-    counters.hearts += 1;
-    await writeCounters(counters);
+  } else if (req.method === 'POST') {
+    try {
+      const body = JSON.parse(req.body || '{}');
 
-    res.status(200).json({
-      visitors: counters.visitors,
-      hearts: counters.hearts
-    });
+      if (body.action === 'heart') {
+        // Increment heart count
+        counters.hearts += 1;
+
+        res.status(200).json({
+          visitors: counters.visitors,
+          hearts: counters.hearts
+        });
+      } else {
+        res.status(400).json({ error: 'Invalid action' });
+      }
+    } catch {
+      res.status(400).json({ error: 'Invalid JSON' });
+    }
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }

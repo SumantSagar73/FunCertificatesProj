@@ -118,7 +118,12 @@ const CertificationBoard = () => {
   useEffect(() => {
     // Fetch counters from Vercel API
     fetch('/api/counters')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         setVisitorCount(data.visitors || 0);
         setHeartCount(data.hearts || 0);
@@ -126,6 +131,11 @@ const CertificationBoard = () => {
       })
       .catch(err => {
         console.error('Failed to load counters:', err);
+        // Fallback to localStorage if API fails
+        const storedVisitors = localStorage.getItem('visitorCount');
+        const storedHearts = localStorage.getItem('heartCount');
+        setVisitorCount(storedVisitors ? parseInt(storedVisitors, 10) : 1);
+        setHeartCount(storedHearts ? parseInt(storedHearts, 10) : 0);
         setLoading(false);
       });
   }, []);
@@ -137,7 +147,12 @@ const CertificationBoard = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'heart' })
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         setVisitorCount(data.visitors || 0);
         setHeartCount(data.hearts || 0);
@@ -145,6 +160,10 @@ const CertificationBoard = () => {
       })
       .catch(err => {
         console.error('Failed to update heart count:', err);
+        // Fallback to localStorage if API fails
+        const currentHearts = heartCount + 1;
+        setHeartCount(currentHearts);
+        localStorage.setItem('heartCount', currentHearts.toString());
         setLoading(false);
       });
   };
