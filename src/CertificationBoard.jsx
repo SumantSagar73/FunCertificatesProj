@@ -110,26 +110,43 @@ const CertificationBoard = () => {
     return pos;
   });
 
-  // Visitor and heart count using localStorage (persists per device)
+  // Visitor and heart count using Vercel API (global counters)
   const [visitorCount, setVisitorCount] = useState(0);
   const [heartCount, setHeartCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load visitor count from localStorage, increment on visit
-    const storedVisitors = localStorage.getItem('visitorCount');
-    const newVisitorCount = storedVisitors ? parseInt(storedVisitors, 10) + 1 : 1;
-    setVisitorCount(newVisitorCount);
-    localStorage.setItem('visitorCount', newVisitorCount.toString());
-
-    // Load heart count from localStorage
-    const storedHearts = localStorage.getItem('heartCount');
-    setHeartCount(storedHearts ? parseInt(storedHearts, 10) : 0);
+    // Fetch counters from Vercel API
+    fetch('/api/counters')
+      .then(res => res.json())
+      .then(data => {
+        setVisitorCount(data.visitors || 0);
+        setHeartCount(data.hearts || 0);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load counters:', err);
+        setLoading(false);
+      });
   }, []);
 
   const handleHeartClick = () => {
-    const newHeartCount = heartCount + 1;
-    setHeartCount(newHeartCount);
-    localStorage.setItem('heartCount', newHeartCount.toString());
+    setLoading(true);
+    fetch('/api/counters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'heart' })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setVisitorCount(data.visitors || 0);
+        setHeartCount(data.hearts || 0);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to update heart count:', err);
+        setLoading(false);
+      });
   };
 
 
@@ -162,8 +179,8 @@ const CertificationBoard = () => {
           ))}
         </div>
         {/* Floating Heart Button */}
-        <button className="heart-button" onClick={handleHeartClick} aria-label="Like this board">
-          <span className="heart-icon" role="img" aria-label="heart">❤️</span>
+        <button className="heart-button" onClick={handleHeartClick} disabled={loading} aria-label="Like this board">
+          <span className="heart-icon" role="img" aria-label="heart">{loading ? '⏳' : '❤️'}</span>
           <span className="heart-count">{heartCount}</span>
         </button>
         {/* Visitor Badge */}
