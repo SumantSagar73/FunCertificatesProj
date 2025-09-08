@@ -110,6 +110,28 @@ const CertificationBoard = () => {
     return pos;
   });
 
+  // Visitor and heart count using localStorage (persists per device)
+  const [visitorCount, setVisitorCount] = useState(0);
+  const [heartCount, setHeartCount] = useState(0);
+
+  useEffect(() => {
+    // Load visitor count from localStorage, increment on visit
+    const storedVisitors = localStorage.getItem('visitorCount');
+    const newVisitorCount = storedVisitors ? parseInt(storedVisitors, 10) + 1 : 1;
+    setVisitorCount(newVisitorCount);
+    localStorage.setItem('visitorCount', newVisitorCount.toString());
+
+    // Load heart count from localStorage
+    const storedHearts = localStorage.getItem('heartCount');
+    setHeartCount(storedHearts ? parseInt(storedHearts, 10) : 0);
+  }, []);
+
+  const handleHeartClick = () => {
+    const newHeartCount = heartCount + 1;
+    setHeartCount(newHeartCount);
+    localStorage.setItem('heartCount', newHeartCount.toString());
+  };
+
 
   return (
     <DndContext
@@ -138,6 +160,15 @@ const CertificationBoard = () => {
               position={positions[cert.id]}
             />
           ))}
+        </div>
+        {/* Floating Heart Button */}
+        <button className="heart-button" onClick={handleHeartClick} aria-label="Like this board">
+          <span className="heart-icon" role="img" aria-label="heart">❤️</span>
+          <span className="heart-count">{heartCount}</span>
+        </button>
+        {/* Visitor Badge */}
+        <div className="visitor-badge">
+          👁️ Visitors: {visitorCount}
         </div>
       </div>
     </DndContext>
